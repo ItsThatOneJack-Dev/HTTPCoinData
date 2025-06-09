@@ -1,6 +1,7 @@
 const express = require('express');
 const https = require('https');
 const zlib = require('zlib');
+const cors = require('cors');
 
 // Try MongoDB ZSTD package: npm install @mongodb-js/zstd
 let zstd = null;
@@ -164,6 +165,12 @@ app.get('/', (req, res) => {
 async function startServer() {
     // Initialize ZSTD support first
     await initZstd();
+
+    app.use(cors({
+        origin: '*',
+        methods: ['GET'],
+        allowedHeaders: ['Content-Type', 'Authorization']
+    }));
     
     app.listen(port, '0.0.0.0', () => {
         console.log(`🚀 Server running on http://0.0.0.0:${port}`);
