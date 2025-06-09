@@ -2,7 +2,7 @@ const express = require('express');
 const https = require('https');
 const zlib = require('zlib');
 
-// Try alternative ZSTD package: npm install @mongodb-js/zstd
+// Try MongoDB ZSTD package: npm install @mongodb-js/zstd
 let zstd = null;
 
 const app = express();
@@ -40,7 +40,7 @@ function fetchRugPlayData() {
             'Accept-Encoding': 'gzip, deflate, br, zstd',
             'Referer': 'https://rugplay.com/coin/HTTP',
             'Connection': 'keep-alive',
-            'Cookie': 'cf_clearance=33iwlz68jGBBlzm6A8cn0WQ6jrgB5nrmM9Di8AQS5Q8-1749432031-1.2.1.1-axCkq9bFiYuQ.2nj6DLUZeJ6jMjqP53fWXdB9RPaElpVFPXJhadNVkJLJYjU12KU_yIsSQoX4.tvY0GD1vbUzOnqNbT9O5_CdfZpaeTo2fF9G_tBl.aIHt2jEd4FOjnBtZu36jpSCL4kSNlgYQ_FHk1vI4VGn3Is1tMItCYrzI7gCqxKLNDb0zYqowQd29e2M8s5fLQdVUrJ0jVlzHFT1oShWi3oGvDL2NlbWmSElGq_OBKyh6Elr9QMVELLxkxANkTZM3_M7KhphifWHCkiUDpL4iCUXkOYPa9nT72IeqXIrksVGopmlRVcgTM9AvfWfo.7lqggr35siaVmygaD6hEyijajra4HI_qLMI0_qGc; sidebar:state=true',
+            'Cookie': 'cf_clearance=33iwlz68jGBBlzm6A8cn0WQ6jrgB5nrmM9Di8AQS5Q8-1749432031-1.2.1.1-axCkq9bFiYuQ.2nj6DLUZeJ6jMjqP53fWXdB9RPaElpVFPXJhadNVkJLJYjU12KU_yIsSQoX4.tvY0GD1vbUzOnqNbT9O5_CdfZpaeTo2fF9G_tBl.aIHt2jEd4FOjnBtZu36jpySCL4kSNlgYQ_FHk1vI4VGn3Is1tMItCYrzI7gCqxKLNDb0zYqowQd29e2M8s5fLQdVUrJ0jVlzHFT1oShWi3oGvDL2NlbWmSElGq_OBKyh6Elr9QMVELLxkxANkTZM3_M7KhphifWHCkiUDpL4iCUXkOYPa9nT72IeqXIrksVGopmlRVcgTM9AvfWfo.7lqggr35siaVmygaD6hEyijajra4HI_qLMI0_qGc; sidebar:state=true',
             'Sec-Fetch-Dest': 'empty',
             'Sec-Fetch-Mode': 'cors',
             'Sec-Fetch-Site': 'same-origin',
@@ -77,7 +77,8 @@ function fetchRugPlayData() {
                     console.log('🗜️  Decompressed Brotli data');
                 } else if (encoding === 'zstd') {
                     if (zstd) {
-                        decompressedData = zstd.decompress(buffer);
+                        // MongoDB ZSTD decompress returns a Promise
+                        decompressedData = await zstd.decompress(buffer);
                         console.log('🗜️  Decompressed ZSTD data');
                     } else {
                         throw new Error('ZSTD support not available. Install with: npm install @mongodb-js/zstd');
@@ -89,6 +90,9 @@ function fetchRugPlayData() {
                 }
 
                 const jsonString = decompressedData.toString('utf8');
+                console.log(`Decompressed data length: ${jsonString.length} characters`);
+                console.log(`First 100 chars: ${jsonString.substring(0, 100)}`);
+                
                 const jsonData = JSON.parse(jsonString);
                 
                 latestData = jsonData;
@@ -99,7 +103,13 @@ function fetchRugPlayData() {
                 fetchError = `Processing error: ${error.message}`;
                 console.error(`❌ Failed to process response: ${error.message}`);
                 console.error(`Content-Encoding: ${res.headers['content-encoding']}`);
+                console.error(`Status Code: ${res.statusCode}`);
+                console.error(`Response Headers:`, res.headers);
                 console.error(`Raw response length: ${Buffer.concat(rawData).length} bytes`);
+                
+                // Log first few bytes as hex for debugging
+                const firstBytes = Buffer.concat(rawData).slice(0, 20);
+                console.error(`First 20 bytes (hex): ${firstBytes.toString('hex')}`);
             }
         });
     });
@@ -152,7 +162,7 @@ app.get('/', (req, res) => {
 
 // Start the server
 async function startServer() {
-    // Initialize ZSTD codec first
+    // Initialize ZSTD support first
     await initZstd();
     
     app.listen(port, '0.0.0.0', () => {
