@@ -1,0 +1,20 @@
+{
+  "name": "httpcoindata",
+  "version": "1.0.0",
+  "description": "A node.js API server which monitors live values of the *HTTP RugPlay currency. ",
+  "homepage": "https://github.com/ItsThatOneJack-Dev/HTTPCoinData#readme",
+  "bugs": {
+    "url": "https://github.com/ItsThatOneJack-Dev/HTTPCoinData/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ItsThatOneJack-Dev/HTTPCoinData.git"
+  },
+  "license": "AGPL-3.0",
+  "author": "ItsThatOneJack",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
