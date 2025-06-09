@@ -2,8 +2,8 @@ const express = require('express');
 const https = require('https');
 const zlib = require('zlib');
 
-// Uncomment this line after installing: npm install zstd-codec
-// const { ZstdCodec } = require('zstd-codec');
+// Try alternative ZSTD package: npm install @mongodb-js/zstd
+let zstd = null;
 
 const app = express();
 const port = 8080;
@@ -13,17 +13,16 @@ let latestData = null;
 let lastFetchTime = null;
 let fetchError = null;
 
-// Initialize ZSTD codec (will be null if package not installed)
-let zstdCodec = null;
-
-// Initialize ZSTD codec
+// Initialize ZSTD
 async function initZstd() {
     try {
-        const { ZstdCodec } = require('zstd-codec');
-        zstdCodec = await ZstdCodec.run();
-        console.log('✅ ZSTD codec initialized');
+        zstd = require('@mongodb-js/zstd');
+        console.log('✅ ZSTD support initialized');
+        return true;
     } catch (error) {
-        console.log('⚠️  ZSTD codec not available. Install with: npm install zstd-codec');
+        console.log('⚠️  ZSTD not available. Install with: npm install @mongodb-js/zstd');
+        console.log('⚠️  Falling back to other compression methods...');
+        return false;
     }
 }
 
@@ -77,13 +76,11 @@ function fetchRugPlayData() {
                     decompressedData = zlib.brotliDecompressSync(buffer);
                     console.log('🗜️  Decompressed Brotli data');
                 } else if (encoding === 'zstd') {
-                    if (zstdCodec) {
-                        const uint8Array = new Uint8Array(buffer);
-                        const decompressed = zstdCodec.decompress(uint8Array);
-                        decompressedData = Buffer.from(decompressed);
+                    if (zstd) {
+                        decompressedData = zstd.decompress(buffer);
                         console.log('🗜️  Decompressed ZSTD data');
                     } else {
-                        throw new Error('ZSTD codec not available. Install with: npm install zstd-codec');
+                        throw new Error('ZSTD support not available. Install with: npm install @mongodb-js/zstd');
                     }
                 } else {
                     // No compression or unknown compression
@@ -137,7 +134,7 @@ app.get('/health', (req, res) => {
         status: 'ok',
         uptime: process.uptime(),
         timestamp: new Date().toISOString(),
-        zstdSupport: zstdCodec !== null
+        zstdSupport: zstd !== null
     });
 });
 
@@ -149,7 +146,7 @@ app.get('/', (req, res) => {
             '/data': 'Get the latest fetched data',
             '/health': 'Health check'
         },
-        zstdSupport: zstdCodec !== null
+        zstdSupport: zstd !== null
     });
 });
 
